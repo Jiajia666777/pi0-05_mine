@@ -15,7 +15,6 @@ import openpi.training.config as _config
 import openpi.training.data_loader as _data_loader
 import openpi.transforms as transforms
 
-
 class RemoveStrings(transforms.DataTransformFn):
     def __call__(self, x: dict) -> dict:
         return {k: v for k, v in x.items() if not np.issubdtype(np.asarray(v).dtype, np.str_)}
