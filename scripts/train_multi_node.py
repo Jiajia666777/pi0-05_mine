@@ -1,8 +1,13 @@
 import os
-MASTER_ADDR = os.environ.get("MASTER_ADDR", None)
-MASTER_PORT = os.environ.get("MASTER_PORT", None)
-# Ensure temporary files do not go to /tmp (which may be small on cluster nodes).
-_tmp_base = os.environ.get("OPENPI_TMPDIR") or "/x2robot_v2/xinyuanfang/projects_v2/.cache/tmp"
+import dataclasses
+import functools
+import logging
+import platform
+from typing import Any
+
+# ========================== 本地环境配置（新版JAX兼容）==========================
+# 临时文件路径（改为你的本地目录，避免/tmp空间不足）
+_tmp_base = os.environ.get("OPENPI_TMPDIR") or "/home/ubuntu/data1/hjt/pi0-05_mine/.cache/tmp"
 try:
     os.makedirs(_tmp_base, exist_ok=True)
     os.environ["TMPDIR"] = _tmp_base
@@ -12,15 +17,10 @@ try:
     os.makedirs(os.environ["CUDA_CACHE_PATH"], exist_ok=True)
 except Exception:
     pass
-os.environ["HF_LEROBOT_HOME"] = "/x2robot_v2/xinyuanfang/projects_v2/.cache/lerobot"
-# os.environ['CUDA_VISIBLE_DEVICES'] = '6,7'
-os.environ['OPENPI_DATA_HOME'] = '/x2robot_v2/xinyuanfang/projects_v2/.cache/openpi'
 
-import dataclasses
-import functools
-import logging
-import platform
-from typing import Any
+# 本地缓存路径（适配权限）
+os.environ["HF_LEROBOT_HOME"] = "/home/ubuntu/data1/hjt/pi0-05_mine/.cache/lerobot"
+os.environ['OPENPI_DATA_HOME'] = '/home/ubuntu/data1/hjt/pi0-05_mine/.cache/openpi'
 
 import etils.epath as epath
 import flax.nnx as nnx
@@ -93,7 +93,7 @@ def _load_weights_and_validate(loader: _weight_loaders.WeightLoader, params_shap
     loaded_params = loader.load(params_shape)
     at.check_pytree_equality(expected=params_shape, got=loaded_params, check_shapes=True, check_dtypes=True)
 
-    # Remove jax.ShapeDtypeStruct from the loaded params. This makes sure that only the loaded params are returned.
+    # Remove jax.ShapeDtypeStruct from the loaded params.
     return traverse_util.unflatten_dict(
         {k: v for k, v in traverse_util.flatten_dict(loaded_params).items() if not isinstance(v, jax.ShapeDtypeStruct)}
     )
@@ -107,18 +107,21 @@ def init_train_state(
 
     def init(rng: at.KeyArrayLike, partial_params: at.Params | None = None) -> training_utils.TrainState:
         rng, model_rng = jax.random.split(rng)
+        # A6000 优化：初始化时启用bfloat16（新版JAX兼容）
+        jax.config.update("jax_enable_x64", False)
+        jax.config.update("jax_default_matmul_precision", jax.lax.Precision("bfloat16"))
+        
         # initialize the model (and its parameters).
         model = config.model.create(model_rng)
 
         # Merge the partial params into the model.
         if partial_params is not None:
             graphdef, state = nnx.split(model)
-            # This will produce an error if the partial params are not a subset of the state.
             state.replace_by_pure_dict(partial_params)
             model = nnx.merge(graphdef, state)
 
         params = nnx.state(model)
-        # Convert frozen params to bfloat16.
+        # Convert frozen params to bfloat16 (A6000硬件加速)
         params = nnx_utils.state_map(params, config.freeze_filter, lambda p: p.replace(p.value.astype(jnp.bfloat16)))
 
         return training_utils.TrainState(
@@ -210,37 +213,39 @@ def train_step(
 
 
 def main(config: _config.TrainConfig):
-
-    ### Set up jax distributed env (I am using Nvidia A800)
-    if int(os.environ.get("SLURM_NTASKS", "0")) > 1:
-        jax.distributed.initialize()
-    # Set master addr and port after jax distributed initialization
-    if MASTER_ADDR:
-        os.environ['MASTER_ADDR'] = MASTER_ADDR
-    if MASTER_PORT:
-        os.environ['MASTER_PORT'] = MASTER_PORT
-    os.environ['GLOO_SOCKET_IFNAME'] = 'eth0'
-    print(f"total rank = {jax.process_count()}")
+    ### A6000 单进程多GPU模式（核心改造：无分布式、无端口）
+    # 强制JAX识别多GPU（从环境变量读取）
+    gpu_ids = os.environ.get("CUDA_VISIBLE_DEVICES", "0")
+    jax_num_devices = len(gpu_ids.split(","))
+    os.environ['JAX_NUM_DEVICES'] = str(jax_num_devices)
+    print(f"A6000 单进程多GPU训练 - GPU数量 = {jax.device_count()}")
 
     init_logging()
-    logging.info(f"Running on: {platform.node()}")
+    logging.info(f"Running on A6000: {platform.node()}")
 
+    # A6000 优化：批次大小适配（需被GPU数量整除）
     if config.batch_size % jax.device_count() != 0:
         raise ValueError(
-            f"Batch size {config.batch_size} must be divisible by the number of devices {jax.device_count()}."
+            f"Batch size {config.batch_size} must be divisible by the number of A6000 devices {jax.device_count()}."
         )
 
-    # Ensure JAX compilation cache directory exists
-    _jax_cache_dir = epath.Path("/x2robot_v2/xinyuanfang/opensource/openpi/.cache/jax").expanduser()
+    # A6000 优化：JAX编译缓存（本地目录，加速重复编译）
+    _jax_cache_dir = epath.Path("/home/ubuntu/data1/hjt/pi0-05_mine/.cache/jax").expanduser()
     try:
         _jax_cache_dir.mkdir(parents=True, exist_ok=True)
     except Exception:
         pass
     jax.config.update("jax_compilation_cache_dir", str(_jax_cache_dir))
+    
+    # 新版JAX核心配置（修复AttributeError）
+    jax.config.update("jax_default_matmul_precision", jax.lax.Precision("bfloat16"))
+    jax.config.update("jax_enable_bfloat16", True)
+    jax.config.update("jax_enable_x64", False)
 
     rng = jax.random.key(config.seed)
     train_rng, init_rng = jax.random.split(rng)
 
+    # A6000 优化：FSDP分片适配（2卡用data并行）
     mesh = sharding.make_mesh(config.fsdp_devices)
     data_sharding = jax.sharding.NamedSharding(mesh, jax.sharding.PartitionSpec(sharding.DATA_AXIS))
     replicated_sharding = jax.sharding.NamedSharding(mesh, jax.sharding.PartitionSpec())
@@ -254,6 +259,7 @@ def main(config: _config.TrainConfig):
     if jax.process_index() == 0:
         init_wandb(config, resuming=resuming, enabled=config.wandb_enabled)
 
+    # A6000 优化：数据加载（num_workers适配CPU核心数）
     data_loader = _data_loader.create_distributed_torch_data_loader(
         config.data, 
         config.model, 
@@ -262,41 +268,34 @@ def main(config: _config.TrainConfig):
         rank=jax.process_index(), 
         world_size=jax.process_count(),
         skip_norm_stats=True, 
-        # num_workers=2,
+        num_workers=8,  # A6000 配套CPU建议8线程
         seed=0,
         shuffle=True,
     )
 
     if jax.process_count() > 1:
-        # Synchronize all processes to ensure dataset is properly initialized across all ranks
         from jax.experimental import multihost_utils
-        multihost_utils.sync_global_devices("Dataset initialization complete")
-        print(f"rank {jax.process_index()}: All processes synchronized after dataset initialization", flush=True)
+        multihost_utils.sync_global_devices("A6000 数据集初始化完成")
+        print(f"Rank {jax.process_index()}: A6000 所有进程同步完成", flush=True)
 
     data_iter = iter(data_loader)
     batch = next(data_iter)
-    logging.info(f"Initialized data loader:\n{training_utils.array_tree_to_info(batch)}")
-
-    # # Log images from first batch to sanity check.
-    # if jax.process_index() == 0:
-    #     images_to_log = [
-    #         wandb.Image(np.concatenate([np.array(img[i]) for img in batch[0].images.values()], axis=1))
-    #         for i in range(min(5, len(next(iter(batch[0].images.values())))))
-    #     ]
-    #     wandb.log({"camera_views": images_to_log}, step=0)
+    logging.info(f"A6000 数据加载完成:\n{training_utils.array_tree_to_info(batch)}")
 
     train_state, train_state_sharding = init_train_state(config, init_rng, mesh, resume=resuming)
     jax.block_until_ready(train_state)
-    logging.info(f"Initialized train state:\n{training_utils.array_tree_to_info(train_state.params)}")
+    logging.info(f"A6000 训练状态初始化完成:\n{training_utils.array_tree_to_info(train_state.params)}")
 
     if resuming:
         train_state = _checkpoints.restore_state(checkpoint_manager, train_state, data_loader)
 
+    # A6000 优化：JIT编译适配新版JAX
     ptrain_step = jax.jit(
         functools.partial(train_step, config),
         in_shardings=(replicated_sharding, train_state_sharding, data_sharding),
         out_shardings=(train_state_sharding, replicated_sharding),
         donate_argnums=(1,),
+        compile_cache=True,  # 开启编译缓存
     )
 
     start_step = int(train_state.step)
@@ -325,7 +324,7 @@ def main(config: _config.TrainConfig):
         if (step % config.save_interval == 0 and step > start_step) or step == config.num_train_steps - 1:
             _checkpoints.save_state(checkpoint_manager, train_state, data_loader, step)
 
-    logging.info("Waiting for checkpoint manager to finish")
+    logging.info("A6000 训练完成，等待Checkpoint保存")
     checkpoint_manager.wait_until_finished()
 
 
