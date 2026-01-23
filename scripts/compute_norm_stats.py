@@ -19,7 +19,6 @@ class RemoveStrings(transforms.DataTransformFn):
     def __call__(self, x: dict) -> dict:
         return {k: v for k, v in x.items() if not np.issubdtype(np.asarray(v).dtype, np.str_)}
 
-
 def create_torch_dataloader(
     data_config: _config.DataConfig,
     action_horizon: int,
