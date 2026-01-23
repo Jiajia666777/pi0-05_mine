@@ -154,7 +154,6 @@ class ModelTransformFactory(GroupFactory):
                             tokenizer_cls(model_config.max_token_len, **tokenizer_kwargs),
                         ),
                     ],
-
                     outputs=[
                         _transforms.ExtractFASTActions(
                             tokenizer_cls(model_config.max_token_len, **tokenizer_kwargs),
@@ -504,10 +503,10 @@ class LeRobotSo100DataConfig(DataConfigFactory):
         # how to modify the transforms to match your dataset. Once you created your own transforms, you can
         # replace the transforms below with your own.
         data_transforms = _transforms.Group(
-            inputs=[so100_policy.S0100Inputs(model_type=model_config.model_type)],
+            inputs=[so100_policy.S0100Inputs(model_type=model_config.model_type, action_dim=model_config.action_dim)],
             outputs=[so100_policy.S0100Outputs()],
         )
-
+        
         # One additional data transform: pi0 models are trained on delta actions (relative to the first
         # state in each action chunk). IF your data has ``absolute`` actions (e.g. target joint angles)
         # you can uncomment the following line to convert the actions to delta actions. The only exception
@@ -530,7 +529,7 @@ class LeRobotSo100DataConfig(DataConfigFactory):
         # Model transforms include things like tokenizing the prompt and action targets
         # You do not need to change anything here for your own dataset.
         model_transforms = ModelTransformFactory()(model_config)
-
+        
         # We return all data transforms for training and inference. No need to change anything here.
         return dataclasses.replace(
             self.create_base_config(assets_dirs, model_config),
@@ -840,6 +839,10 @@ _CONFIGS = [
         num_train_steps=30_000,
     ),
 
+
+
+
+
     # 在_CONFIGS列表中新增
     TrainConfig(
         name="pi05_so100",  # 唯一配置名，用于调用
@@ -873,15 +876,15 @@ _CONFIGS = [
         optimizer=_optimizer.AdamW(clip_gradient_norm=1.0),
         ema_decay=0.999,
     ),
-
+    
     TrainConfig(
         name="pi05_so100_lora_finetune",  # 唯一配置名，用于训练调用
         # Pi05 模型配置 + LoRA 微调核心设置
         model=pi0_config.Pi0Config(
             pi05=True,  # 启用 Pi05 特有逻辑（状态输入为离散语言token、adaRMSNorm注入时间步）
-            action_dim=6,  # 核心适配：SO100 机器人的6维动作空间（替换原Libero的7维）
-            # action_horizon=10,  # 保持 Pi05 适配的动作窗口长度
-            # max_token_len=180,  # 适配SO100任务的token长度
+            action_dim=32,  # 核心适配：SO100 机器人的6维动作空间（替换原Libero的7维）
+            action_horizon=10,  # 保持 Pi05 适配的动作窗口长度
+            max_token_len=180,  # 适配SO100任务的token长度
             discrete_state_input=False,  # 按SO100数据特性关闭离散状态输入
             paligemma_variant="gemma_2b_lora",  # 开启 LoRA 微调（基于2B Gemma基座）
             action_expert_variant="gemma_300m",  # 保持Pi05默认的动作专家配置
@@ -894,20 +897,24 @@ _CONFIGS = [
             ),
             extra_delta_transform=False,  # SO100 数据无需额外delta变换
         ),
+        
         # 加载 Pi05 基座权重（用于LoRA初始化）
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_libero/params"),
         # LoRA 微调核心配置
         freeze_filter=pi0_config.Pi0Config(
             pi05=True,
-            action_dim=6, action_horizon=10, max_token_len=180,
+            action_dim=32,  # 与model配置一致
+            action_horizon=10,  # 保持 Pi05 适配的动作窗口长度
+            max_token_len=180,  # 适配SO100任务的token长度
             paligemma_variant="gemma_2b_lora",  # 与model配置一致，自动生成LoRA冻结规则
         ).get_freeze_filter(),  # 冻结非LoRA的LLM参数，仅训练LoRA权重
-        ema_decay=None,  # LoRA微调必须关闭EMA（避免权重更新冲突）
-        # 训练超参数（适配LoRA低显存微调）
-       
+        
         batch_size=8,  # 低显存适配，可根据GPU显存调整
 
+        ema_decay=None,  # LoRA微调必须关闭EMA（避免权重更新冲突）
+        # 训练超参数（适配LoRA低显存微调）
         num_train_steps=30_000,  # 保持训练步数
+        
         lr_schedule=_optimizer.CosineDecaySchedule(
             warmup_steps=10_000,  # 适配LoRA的学习率预热步数
             peak_lr=5e-5,  # LoRA微调推荐的峰值学习率
@@ -921,7 +928,11 @@ _CONFIGS = [
         keep_period=5000,
         num_workers=0,  # 若用RLDS数据加载器需保持0（内部处理多进程）
         pytorch_training_precision="bfloat16",  # 低显存+高精度平衡
-    ),
+    ), 
+
+
+
+
 
     #
     # Fine-tuning Aloha configs.
@@ -957,51 +968,7 @@ _CONFIGS = [
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
         num_train_steps=20_000,
     ),
-            TrainConfig(
-        name="pi05_so100_lora_finetune",  # 唯一配置名，用于训练调用
-        # Pi05 模型配置 + LoRA 微调核心设置
-        model=pi0_config.Pi0Config(
-            pi05=True,  # 启用 Pi05 特有逻辑（状态输入为离散语言token、adaRMSNorm注入时间步）
-            action_dim=6,  # 核心适配：SO100 机器人的6维动作空间（替换原Libero的7维）
-            action_horizon=10,  # 保持 Pi05 适配的动作窗口长度
-            max_token_len=180,  # 适配SO100任务的token长度
-            discrete_state_input=False,  # 按SO100数据特性关闭离散状态输入
-            paligemma_variant="gemma_2b_lora",  # 开启 LoRA 微调（基于2B Gemma基座）
-            action_expert_variant="gemma_300m",  # 保持Pi05默认的动作专家配置
-        ),
-        # SO100 数据集配置
-        data=LeRobotSo100DataConfig(
-            repo_id="John8862333333/so100_banana_v2.1",  # SO100 数据集仓库ID
-            base_config=DataConfig(
-                prompt_from_task=True,  # 从SO100数据集的task字段加载任务prompt（适配单任务特性）
-            ),
-            extra_delta_transform=False,  # SO100 数据无需额外delta变换
-        ),
-        # 加载 Pi05 基座权重（用于LoRA初始化）
-        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_libero/params"),
-        # LoRA 微调核心配置
-        freeze_filter=pi0_config.Pi0Config(
-            pi05=True,
-            paligemma_variant="gemma_2b_lora",  # 与model配置一致，自动生成LoRA冻结规则
-        ).get_freeze_filter(),  # 冻结非LoRA的LLM参数，仅训练LoRA权重
-        ema_decay=None,  # LoRA微调必须关闭EMA（避免权重更新冲突）
-        # 训练超参数（适配LoRA低显存微调）
-        num_train_steps=30_000,  # 保持训练步数
-        batch_size=8,  # 低显存适配，可根据GPU显存调整
-        lr_schedule=_optimizer.CosineDecaySchedule(
-            warmup_steps=10_000,  # 适配LoRA的学习率预热步数
-            peak_lr=5e-5,  # LoRA微调推荐的峰值学习率
-            decay_steps=1_000_000,
-            decay_lr=5e-5,
-        ),
-        optimizer=_optimizer.AdamW(clip_gradient_norm=1.0),  # 梯度裁剪防止爆炸
-        # 其他通用配置（保持Pi05微调基线）
-        log_interval=100,
-        save_interval=1000,
-        keep_period=5000,
-        num_workers=0,  # 若用RLDS数据加载器需保持0（内部处理多进程）
-        pytorch_training_precision="bfloat16",  # 低显存+高精度平衡
-    ), 
+
     TrainConfig(
         name="pi05_aloha_pen_uncap",
         model=pi0_config.Pi0Config(pi05=True),

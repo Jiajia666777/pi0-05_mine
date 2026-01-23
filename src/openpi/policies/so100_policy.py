@@ -30,11 +30,12 @@ def _parse_image(image) -> np.ndarray:
 @dataclasses.dataclass(frozen=True)
 class S0100Inputs(transforms.DataTransformFn):
     # The action dimension of the model. Will be used to pad state and actions for pi05 model (not pi0-FAST).
-    action_dim: int = 32
+    action_dim: int
 
     # Determines which model will be used.
-    model_type: _model.ModelType = _model.ModelType.PI05
+    model_type: _model.ModelType 
 
+    
     def __call__(self, data: dict) -> dict:
         mask_padding = self.model_type == _model.ModelType.PI05  # We don't mask for pi0-FAST.
 
