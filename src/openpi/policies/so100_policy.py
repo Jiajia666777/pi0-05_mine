@@ -30,7 +30,7 @@ def _parse_image(image) -> np.ndarray:
 @dataclasses.dataclass(frozen=True)
 class S0100Inputs(transforms.DataTransformFn):
     # The action dimension of the model. Will be used to pad state and actions for pi0 model (not pi0-FAST).
-    action_dim: int = 7
+    action_dim: int = 32
 
     # Determines which model will be used.
     model_type: _model.ModelType = _model.ModelType.PI05
@@ -86,5 +86,5 @@ class S0100Outputs(transforms.DataTransformFn):
 if __name__ == "__main__":
     example = make_so100_example()
     print("Example input:", example)
-    so100_inputs = S0100Inputs(action_dim=6, model_type=_model.ModelType.PI0)(example)
+    so100_inputs = S0100Inputs(action_dim=32, model_type=_model.ModelType.PI05)(example)
     print("SO100 model inputs:", so100_inputs)
