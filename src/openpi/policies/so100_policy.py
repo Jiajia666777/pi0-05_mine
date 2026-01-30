@@ -66,7 +66,7 @@ class S0100Inputs(transforms.DataTransformFn):
             "image_mask": image_masks,
         }
         
-        # Actions are only available during traininsg.
+        # Actions are only available during training.
         # if "actions" in data:
         actions = transforms.pad_to_dim(data["actions"], self.action_dim)
         inputs["actions"] = actions

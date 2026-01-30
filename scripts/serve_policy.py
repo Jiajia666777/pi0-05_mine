@@ -9,7 +9,12 @@ from openpi.policies import policy as _policy
 from openpi.policies import policy_config as _policy_config
 from openpi.serving import websocket_policy_server
 from openpi.training import config as _config
+'''
+bash
 
+python3 scripts/serve_policy.py policy:checkpoint --policy.config=pi05_so100_lora_finetune --policy.dir=/home/ly/workspace/checkpoints/29999
+
+'''
 
 class EnvMode(enum.Enum):
     """Supported environments."""

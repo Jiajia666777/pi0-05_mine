@@ -55,9 +55,43 @@ class WebsocketPolicyServer:
         while True:
             try:
                 start_time = time.monotonic()
+
                 obs = msgpack_numpy.unpackb(await websocket.recv())
-                for k, v in obs.items():
-                    print(f"key: {k!r} (type={type(k).__name__}), value type: {type(v).__name__}, shape: {getattr(v, 'shape', 'N/A')}")
+
+                async for message in websocket:
+                    # 第二步：反序列化（msgpack_numpy 会自动还原 numpy 数组，不拆字典）
+                    # object_hook=m.decode 强制还原 numpy 数组，而非拆成 bytes 字典
+                    obs = msgpack_numpy.unpackb(
+                        message,
+                        object_hook=msgpack_numpy.decode,  # 核心：还原 numpy 数组
+                        raw=True  # 不自动解码 bytes，避免碰二进制数据
+                    )
+
+                    # 第三步：仅清理「文本类 bytes 键」（如 b'observation.state'），不碰数组
+                def clean_text_bytes(obj):
+                    if isinstance(obj, dict):
+                        cleaned = {}
+                        for k, v in obj.items():
+                            # 只解码「可打印的文本 bytes 键」（数组内部不会有这类键）
+                            if isinstance(k, bytes):
+                                try:
+                                    # 尝试解码为 utf-8 文本
+                                    decoded_k = k.decode('utf-8')
+                                    # 仅保留可打印的文本键（排除二进制数据）
+                                    if decoded_k.isprintable():
+                                        k = decoded_k
+                                except UnicodeDecodeError:
+                                    # 二进制键（如数组内部）不处理
+                                    pass
+                            # 递归清理嵌套字典
+                            cleaned[k] = clean_text_bytes(v)
+                        return cleaned
+                    return obj
+                    
+                obs = clean_text_bytes(obs)
+
+                # for k, v in obs.items():
+                #     print(f"key: {k!r} (type={type(k).__name__}), value type: {type(v).__name__}, shape: {getattr(v, 'shape', 'N/A')}")
                 
                 infer_time = time.monotonic()
                 action = self._policy.infer(obs)

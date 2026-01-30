@@ -477,7 +477,9 @@ class LeRobotSo100DataConfig(DataConfigFactory):
     @override
     def create(self, assets_dirs: pathlib.Path, model_config: _model.BaseModelConfig) -> DataConfig:
         # The repack transform is *only* applied to the data coming from the dataset,
-        # and *not* during inference. We can use it to make inputs from the dataset look
+        # and *not* during inference. 
+        
+        # We can use it to make inputs from the dataset look
         # as close as possible to those coming from the inference environment (e.g. match the keys).
         # Below, we match the keys in the dataset (which we defined in the data conversion script) to
         # the keys we use in our inference pipeline (defined in the inference script for libero).
@@ -914,7 +916,6 @@ _CONFIGS = [
         ema_decay=None,  # LoRA微调必须关闭EMA（避免权重更新冲突）
         # 训练超参数（适配LoRA低显存微调）
         num_train_steps=30_000,  # 保持训练步数
-        
         lr_schedule=_optimizer.CosineDecaySchedule(
             warmup_steps=10_000,  # 适配LoRA的学习率预热步数
             peak_lr=5e-5,  # LoRA微调推荐的峰值学习率
