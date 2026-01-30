@@ -56,7 +56,7 @@ def create_trained_policy(
         model = train_config.model.load(_model.restore_params(checkpoint_dir / "params", dtype=jnp.bfloat16))
     data_config = train_config.data.create(train_config.assets_dirs, train_config.model)
 
-    repack_transforms_train = data_config.data_transforms.inputs
+    repack_transforms_train = data_config.repack_transform
 
     repack_transforms = repack_transforms or repack_transforms_train or transforms.Group()
 
