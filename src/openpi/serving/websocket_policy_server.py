@@ -56,7 +56,9 @@ class WebsocketPolicyServer:
             try:
                 start_time = time.monotonic()
                 obs = msgpack_numpy.unpackb(await websocket.recv())
-
+                for k, v in obs.items():
+                    print(f"key: {k!r} (type={type(k).__name__}), value type: {type(v).__name__}, shape: {getattr(v, 'shape', 'N/A')}")
+                
                 infer_time = time.monotonic()
                 action = self._policy.infer(obs)
                 infer_time = time.monotonic() - infer_time
