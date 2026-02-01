@@ -14,6 +14,7 @@ bash
 
 python3 scripts/serve_policy.py policy:checkpoint --policy.config=pi05_so100_lora_finetune --policy.dir=/home/ly/workspace/checkpoints/29999
 
+scp -r ubuntu@192.168.1.246:/home/ubuntu/data1/hjt/pi0-05_mine/checkpoints/pi05_so100_lora_finetune/pi05_so100_lora_finetune/29999 /home/ly/workspace/checkpoints/               
 '''
 
 class EnvMode(enum.Enum):
@@ -53,7 +54,7 @@ class Args:
     default_prompt: str | None = None
 
     # Port to serve the policy on.
-    port: int = 8000
+    port: int = 8098
     # Record the policy's behavior for debugging.
     record: bool = False
 

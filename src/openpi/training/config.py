@@ -492,7 +492,7 @@ class LeRobotSo100DataConfig(DataConfigFactory):
                     {
                         "observation/state": "observation.state",         # 状态字段对齐
                         "observation/images/right": "observation.images.right",  # 你的图像字段 → 模型期望的image
-                        "actions": "action",                  # 你的action → 模型期望的actions
+                        # "actions": "action",                  # 你的action → 模型期望的actions
                     }
                 )
             ]

@@ -67,12 +67,14 @@ class S0100Inputs(transforms.DataTransformFn):
         }
         
         # Actions are only available during training.
-        # if "actions" in data:
-        actions = transforms.pad_to_dim(data["actions"], self.action_dim)
-        inputs["actions"] = actions
+        if "action" in data:
+            actions = transforms.pad_to_dim(data["action"], self.action_dim)
+            inputs["actions"] = actions
 
-        # if "prompt" in data:
-        inputs["prompt"] = "pick up the banana and put it into the box" 
+        if "prompt" in data:
+            inputs["prompt"] = data["prompt"]
+        else:
+            inputs["prompt"] = "pick up the banana and put it into the box"
 
         return inputs
 
@@ -82,7 +84,7 @@ class S0100Outputs(transforms.DataTransformFn):
     def __call__(self, data: dict) -> dict:
         # Make sure to only return the appropriate number of actions here
         # 6 for 1 robot, 12 for 2
-        return {"actions": np.asarray(data["action"][:, :6])}
+        return {"actions": np.asarray(data["actions"][:, :6])}
     
 if __name__ == "__main__":
     example = make_so100_example()
