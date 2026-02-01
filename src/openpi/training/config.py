@@ -901,7 +901,7 @@ _CONFIGS = [
         ),
         
         # 加载 Pi05 基座权重（用于LoRA初始化）
-        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_libero/params"),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_base/params"),
         # LoRA 微调核心配置
         freeze_filter=pi0_config.Pi0Config(
             pi05=True,
