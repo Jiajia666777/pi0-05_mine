@@ -866,7 +866,7 @@ _CONFIGS = [
         ),
 
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_libero/params"),
-        num_train_steps=30_000_000),
+        num_train_steps=30_000_000,
 
         batch_size=8,
         lr_schedule=_optimizer.CosineDecaySchedule(
@@ -924,7 +924,7 @@ _CONFIGS = [
         ),
         optimizer=_optimizer.AdamW(clip_gradient_norm=1.0),  # 梯度裁剪防止爆炸
         # 其他通用配置（保持Pi05微调基线）
-        log_interval=100,
+        log_interval=10,
         save_interval=1000,
         keep_period=5000,
         num_workers=0,  # 若用RLDS数据加载器需保持0（内部处理多进程）
