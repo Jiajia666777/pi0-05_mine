@@ -866,7 +866,7 @@ _CONFIGS = [
         ),
 
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_libero/params"),
-        num_train_steps=30_000,
+        num_train_steps=30_000_000),
 
         batch_size=8,
         lr_schedule=_optimizer.CosineDecaySchedule(
