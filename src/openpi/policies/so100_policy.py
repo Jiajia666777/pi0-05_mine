@@ -67,8 +67,8 @@ class S0100Inputs(transforms.DataTransformFn):
         }
         
         # Actions are only available during training.
-        if "action" in data:
-            actions = transforms.pad_to_dim(data["action"], self.action_dim)
+        if "actions" in data:
+            actions = transforms.pad_to_dim(data["actions"], self.action_dim)
             inputs["actions"] = actions
 
         if "prompt" in data:
