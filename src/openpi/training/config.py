@@ -893,7 +893,7 @@ _CONFIGS = [
         ),
         # SO100 数据集配置
         data=LeRobotSo100DataConfig(
-            repo_id="John8862333333/so100_banana_v2.1",  # SO100 数据集仓库ID
+            repo_id="John8862333333/so100_pick_up_banana_v20_sec",  # SO100 数据集仓库ID
             base_config=DataConfig(
                 prompt_from_task=True,  # 从SO100数据集的task字段加载任务prompt（适配单任务特性）
             ),
@@ -915,7 +915,7 @@ _CONFIGS = [
 
         ema_decay=None,  # LoRA微调必须关闭EMA（避免权重更新冲突）
         # 训练超参数（适配LoRA低显存微调）
-        num_train_steps=30_000_000,  # 保持训练步数
+        num_train_steps=100_000,  # 保持训练步数
         lr_schedule=_optimizer.CosineDecaySchedule(
             warmup_steps=10_000,  # 适配LoRA的学习率预热步数
             peak_lr=5e-5,  # LoRA微调推荐的峰值学习率
