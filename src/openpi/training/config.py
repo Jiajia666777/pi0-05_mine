@@ -893,7 +893,7 @@ _CONFIGS = [
         ),
         # SO100 数据集配置
         data=LeRobotSo100DataConfig(
-            repo_id="John8862333333/so100_pick_up_banana_v20_sec",  # SO100 数据集仓库ID
+            repo_id="John8862333333/so100_pick_up_banana_v21_sec",  # SO100 数据集仓库ID
             base_config=DataConfig(
                 prompt_from_task=True,  # 从SO100数据集的task字段加载任务prompt（适配单任务特性）
             ),
