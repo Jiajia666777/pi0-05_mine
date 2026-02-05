@@ -27,6 +27,14 @@ import openpi.training.sharding as sharding
 import openpi.training.utils as training_utils
 import openpi.training.weight_loaders as _weight_loaders
 
+'''
+usage:
+
+python3 scripts/compute_norm_stats.py --config-name pi05_so100_lora_finetune
+python3 scripts/train.py pi05_so100_lora_finetune --exp-name=my_experiment --overwrite
+
+
+'''
 
 def init_logging():
     """Custom logging format for better readability."""
@@ -71,7 +79,7 @@ def init_wandb(config: _config.TrainConfig, *, resuming: bool, log_code: bool = 
 
 
 def _load_weights_and_validate(loader: _weight_loaders.WeightLoader, params_shape: at.Params) -> at.Params:
-    """Loads and validates the weights. Returns a loaded subset of the weights."""
+    """Loads and validates the weights. Returns a loaded   of the weights."""
     loaded_params = loader.load(params_shape)
     at.check_pytree_equality(expected=params_shape, got=loaded_params, check_shapes=True, check_dtypes=True)
 

@@ -72,6 +72,7 @@ class WebsocketPolicyServer:
                     # We can only record the last total time since we also want to include the send time.
                     action["server_timing"]["prev_total_ms"] = prev_total_time * 1000
 
+                print(f"Action: {action}")
                 await websocket.send(packer.pack(action))
                 prev_total_time = time.monotonic() - start_time
 

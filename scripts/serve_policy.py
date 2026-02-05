@@ -12,7 +12,7 @@ from openpi.training import config as _config
 '''
 bash
 
-python3 scripts/serve_policy.py policy:checkpoint --policy.config=pi05_so100_lora_finetune --policy.dir=/home/ly/workspace/checkpoints/29999
+python3 scripts/serve_policy.py policy:checkpoint --policy.config=pi05_so100_lora_finetune --policy.dir=/home/ly/workspace/checkpoints/40000
 
 scp -r ubuntu@192.168.1.246:/home/ubuntu/data1/hjt/pi0-05_mine/checkpoints/pi05_so100_lora_finetune/pi05_so100_lora_finetune/29999 /home/ly/workspace/checkpoints/               
 '''

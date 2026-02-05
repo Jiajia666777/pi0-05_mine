@@ -9,12 +9,12 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                // "policy:checkpoint",
-                // "--policy.config=pi05_so100_lora_finetune",
-                // "--policy.dir=/home/ly/workspace/checkpoints/29999",
-                "pi05_so100_lora_finetune",
-                "--exp-name=pi05_so100_lora_finetune",
-                "--overwrite"
+                "policy:checkpoint",
+                "--policy.config=pi05_so100_lora_finetune",
+                "--policy.dir=/home/ly/workspace/checkpoints/40000",
+                // "pi05_so100_lora_finetune",
+                // "--exp-name=pi05_so100_lora_finetune",
+                // "--overwrite"
             ]
         }
     ]
