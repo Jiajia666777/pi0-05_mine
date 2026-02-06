@@ -9,6 +9,8 @@ from openpi.policies import policy as _policy
 from openpi.policies import policy_config as _policy_config
 from openpi.serving import websocket_policy_server
 from openpi.training import config as _config
+
+import pathlib
 '''
 bash
 
@@ -131,7 +133,9 @@ def main(args: Args) -> None:
         host="0.0.0.0",
         port=args.port,
         metadata=policy_metadata,
-    )
+        use_quantile_norm=True,
+        norm_stats_path=pathlib.Path("assets/pi05_so100_lora_finetune/John8862333333/so100_pick_up_banana_v21_sec/norm_stats.json")    
+        )
     server.serve_forever()
 
 

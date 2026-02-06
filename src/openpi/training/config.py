@@ -844,7 +844,24 @@ _CONFIGS = [
 
 
 
-
+    TrainConfig(
+        name="pi0_so100_lora_finetune",
+        model=pi0_fast.Pi0FASTConfig(paligemma_variant="gemma_2b_lora"),
+        data=LeRobotSo100DataConfig(
+            repo_id="John8862333333/so100_banana_v2.1",
+            base_config=DataConfig(
+                prompt_from_task=True,
+            ),
+            extra_delta_transform=False,
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_fast_base/params"),
+        num_train_steps=20_000_000,
+        freeze_filter=pi0_fast.Pi0FASTConfig(
+            action_dim=6, action_horizon=10, max_token_len=180, paligemma_variant="gemma_2b_lora"
+        ).get_freeze_filter(),
+        ema_decay=None,
+        batch_size=8,
+    ),
 
     # 在_CONFIGS列表中新增
     TrainConfig(
