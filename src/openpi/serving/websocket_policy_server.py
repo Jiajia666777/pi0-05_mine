@@ -186,7 +186,7 @@ class WebsocketPolicyServer:
                 obs = msgpack_numpy.unpackb(await websocket.recv())
 
                 # 归一化观测数据
-                obs = self.normalize_obs(obs)
+                # obs = self.normalize_obs(obs)
 
                 infer_time = time.monotonic()
                 action = self._policy.infer(obs)

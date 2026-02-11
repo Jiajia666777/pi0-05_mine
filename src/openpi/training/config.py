@@ -493,7 +493,7 @@ class LeRobotSo100DataConfig(DataConfigFactory):
                     {
                         "observation/state": "observation.state",         # 状态字段对齐
                         "observation/images/right": "observation.images.right",  # 你的图像字段 → 模型期望的image
-                        "actions": "action",                  # 你的action → 模型期望的actions
+                        # "actions": "action",                  # 你的action → 模型期望的actions
                     }
                 )
             ]
@@ -848,14 +848,14 @@ _CONFIGS = [
         name="pi0_so100_lora_finetune",
         model=pi0_fast.Pi0FASTConfig(paligemma_variant="gemma_2b_lora"),
         data=LeRobotSo100DataConfig(
-            repo_id="John8862333333/so100_banana_v2.1",
+            repo_id="John8862333333/so100_pick_up_banana_v21_sec",
             base_config=DataConfig(
                 prompt_from_task=True,
             ),
             extra_delta_transform=False,
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_fast_base/params"),
-        num_train_steps=20_000_000,
+        num_train_steps=60_000,
         freeze_filter=pi0_fast.Pi0FASTConfig(
             action_dim=6, action_horizon=10, max_token_len=180, paligemma_variant="gemma_2b_lora"
         ).get_freeze_filter(),
@@ -876,7 +876,7 @@ _CONFIGS = [
         ),
         # 关联so100的数据配置
         data=LeRobotSo100DataConfig(
-            repo_id="John8862333333/so100_banana_v2.1",
+            repo_id="John8862333333/so100_pick_up_banana_v21_sec",
             base_config=DataConfig(
                 prompt_from_task=True, # 从数据集的task字段加载prompt（so100只有1个任务，适配）
             ),
@@ -884,7 +884,7 @@ _CONFIGS = [
         ),
 
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_libero/params"),
-        num_train_steps=30_000_000,
+        num_train_steps=60_000,
 
         batch_size=8,
         lr_schedule=_optimizer.CosineDecaySchedule(
@@ -933,7 +933,7 @@ _CONFIGS = [
 
         ema_decay=None,  # LoRA微调必须关闭EMA（避免权重更新冲突）
         # 训练超参数（适配LoRA低显存微调）
-        num_train_steps=100_000,  # 保持训练步数
+        num_train_steps=60_000,  # 保持训练步数
         lr_schedule=_optimizer.CosineDecaySchedule(
             warmup_steps=10_000,  # 适配LoRA的学习率预热步数
             peak_lr=5e-5,  # LoRA微调推荐的峰值学习率

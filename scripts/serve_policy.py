@@ -14,7 +14,7 @@ import pathlib
 '''
 bash
 
-python3 scripts/serve_policy.py policy:checkpoint --policy.config=pi05_so100_lora_finetune --policy.dir=/home/ly/workspace/checkpoints/40000
+python3 scripts/serve_policy.py policy:checkpoint --policy.config=pi0_so100_lora_finetune --policy.dir=/home/ly/workspace/checkpoints/pi0_base_first/30000
 
 scp -r ubuntu@192.168.1.246:/home/ubuntu/data1/hjt/pi0-05_mine/checkpoints/pi05_so100_lora_finetune/pi05_so100_lora_finetune/29999 /home/ly/workspace/checkpoints/               
 '''
@@ -83,8 +83,8 @@ DEFAULT_CHECKPOINT: dict[EnvMode, Checkpoint] = {
         dir="gs://openpi-assets/checkpoints/pi05_libero",
     ),
     EnvMode.SO100: Checkpoint(
-        config="pi05_so100_lora_finetune",
-        dir="checkpoints/pi05_so100_lora_finetune",
+        config="pi0_so100_lora_finetune",
+        dir="checkpoints/pi0_so100_lora_finetune",
     ),
 }
 
@@ -133,8 +133,9 @@ def main(args: Args) -> None:
         host="0.0.0.0",
         port=args.port,
         metadata=policy_metadata,
-        use_quantile_norm=True,
-        norm_stats_path=pathlib.Path("assets/pi05_so100_lora_finetune/John8862333333/so100_pick_up_banana_v21_sec/norm_stats.json")    
+        use_quantile_norm=False,
+        # norm_stats_path=pathlib.Path("assets/pi0_so100_lora_finetune/John8862333333/so100_banana_v2.1/norm_stats.json")    
+        norm_stats_path=pathlib.Path("assets/pi05_so100_lora_finetune/John8862333333/so100_banana_v2.1/norm_stats.json")    
         )
     server.serve_forever()
 
